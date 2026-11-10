@@ -4,6 +4,8 @@ This local development stack contains two React applications, two Spring Boot BF
 
 ## Architecture
 
+![Keycloak BFF SSO Lab architecture](docs/images/architecture.png)
+
 ```mermaid
 flowchart LR
     U1[Service One browser] -->|same-origin requests| B1[Service One BFF]
