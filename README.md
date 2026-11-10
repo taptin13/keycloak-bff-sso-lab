@@ -4,8 +4,6 @@ This local development stack contains two React applications, two Spring Boot BF
 
 ## Architecture
 
-![Keycloak BFF SSO Lab architecture](docs/images/architecture.png)
-
 ```mermaid
 flowchart LR
     U1[Service One browser] -->|same-origin requests| B1[Service One BFF]
@@ -79,16 +77,15 @@ sequenceDiagram
     end
     opt BFF session is still valid
         B->>G: Call fixed app-specific route with current access token
-        G->>G: Validate signature, issuer, audience, and time claims
-        G->>API: Forward authorized request
-        API->>API: Independently validate JWT and its own audience
+        G->>API: Route request with access token
+        API->>API: Validate JWT signature, issuer, time claims, and audience
         API-->>G: API response
         G-->>B: API response
         B-->>U: Return API response without tokens
     end
 ```
 
-The BFF maps only its own fixed routes to Kong; it is not a general-purpose URL proxy. Service One tokens are restricted to `service-one-api`; Service Two tokens are restricted to `service-two-api`. Both Kong and the APIs check the service-specific audience.
+The BFF maps only its own fixed routes to Kong; it is not a general-purpose URL proxy. Kong routes traffic without custom authentication plugins. Each API independently validates the JWT signature, issuer, time claims, and its service-specific audience (`service-one-api` or `service-two-api`).
 
 ## App-local logout flow
 
@@ -134,5 +131,4 @@ Stop with `Ctrl+C`, or run `docker compose down`.
 - Sessions are in process memory; the Compose BFF services have fixed container names to prevent accidental scaling beyond one replica. Restarting a backend logs out its users. Do not remove that single-instance constraint until Spring Session or another secured shared session store is configured and token data is protected at rest. The session idle timeout must not exceed the Keycloak refresh/session lifetime.
 - Logging out invalidates only the selected app's BFF session. It does not revoke the Keycloak tokens or terminate Keycloak SSO, so a later login may immediately reuse SSO. Implement token revocation and RP-Initiated Logout only if global logout is required.
 - NGINX access logging is disabled on OAuth authorization and callback paths so state, authorization codes, and other query values are not written to ordinary access logs. The callback and successful-login responses use no-store/no-referrer protections.
-- Kong's `keycloak-jwks` plugin is project-owned code, not Kong Enterprise OIDC. Add dedicated plugin security tests, rate limits, metrics, and controlled JWKS refresh before production use.
 - This design follows the BFF guidance in [draft-ietf-oauth-browser-based-apps-17](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-browser-based-apps-17), especially §§6.1.2–6.1.3. It is an expired Internet-Draft, not an RFC numbered 10017.

@@ -15,19 +15,16 @@ services:
       - ./keycloak/demo-realm.json:/opt/keycloak/data/import/demo-realm.json:ro
 
   kong:
-    build:
-      context: ./kong
+    image: kong:3.9.1
     environment:
       KONG_DATABASE: "off"
       KONG_DECLARATIVE_CONFIG: /kong/declarative/kong.yaml
-      KONG_PLUGINS: bundled,keycloak-jwks
       KONG_PROXY_LISTEN: 0.0.0.0:8000
       KONG_ADMIN_LISTEN: "off"
       KONG_LOG_LEVEL: warn
     volumes:
       - ./kong/kong.yaml:/kong/declarative/kong.yaml:ro
     depends_on:
-      - keycloak
       - service-one-api
       - service-two-api
 

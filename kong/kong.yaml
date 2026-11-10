@@ -4,14 +4,6 @@ _transform: true
 services:
   - name: service-one-api
     url: http://service-one-api:8080
-    plugins:
-      - name: keycloak-jwks
-        config:
-          issuer: http://localhost:8080/realms/demo
-          jwks_uri: http://keycloak:8080/realms/demo/protocol/openid-connect/certs
-          audience: service-one-api
-          cache_ttl: 300
-          clock_skew: 30
     routes:
       - name: service-one
         paths:
@@ -22,14 +14,6 @@ services:
 
   - name: service-two-api
     url: http://service-two-api:8080
-    plugins:
-      - name: keycloak-jwks
-        config:
-          issuer: http://localhost:8080/realms/demo
-          jwks_uri: http://keycloak:8080/realms/demo/protocol/openid-connect/certs
-          audience: service-two-api
-          cache_ttl: 300
-          clock_skew: 30
     routes:
       - name: service-two
         paths:
