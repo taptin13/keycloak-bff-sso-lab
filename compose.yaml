@@ -1,0 +1,90 @@
+name: keycloak-bff-sso-lab
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.2.5
+    command: start-dev --import-realm
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HOSTNAME: http://localhost:8080
+      KC_HTTP_ENABLED: "true"
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ./keycloak/demo-realm.json:/opt/keycloak/data/import/demo-realm.json:ro
+
+  kong:
+    build:
+      context: ./kong
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /kong/declarative/kong.yaml
+      KONG_PLUGINS: bundled,keycloak-jwks
+      KONG_PROXY_LISTEN: 0.0.0.0:8000
+      KONG_ADMIN_LISTEN: "off"
+      KONG_LOG_LEVEL: warn
+    volumes:
+      - ./kong/kong.yaml:/kong/declarative/kong.yaml:ro
+    depends_on:
+      - keycloak
+      - service-one-api
+      - service-two-api
+
+  service-one-api:
+    container_name: keycloak-bff-sso-lab-service-one-bff
+    build:
+      context: ./service-one/backend
+    environment:
+      KEYCLOAK_ISSUER_URI: http://localhost:8080/realms/demo
+      KEYCLOAK_AUTHORIZATION_URI: http://localhost:8080/realms/demo/protocol/openid-connect/auth
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/demo/protocol/openid-connect/certs
+      KEYCLOAK_TOKEN_URI: http://keycloak:8080/realms/demo/protocol/openid-connect/token
+      KEYCLOAK_USER_INFO_URI: http://keycloak:8080/realms/demo/protocol/openid-connect/userinfo
+      KEYCLOAK_CLIENT_ID: demo-service-one
+      KEYCLOAK_CLIENT_SECRET: demo-service-one-secret
+      KEYCLOAK_REDIRECT_URI: http://localhost:5173/login/oauth2/code/keycloak
+      BFF_SESSION_COOKIE_NAME: SERVICE_ONE_SESSION
+      FRONTEND_URL: http://localhost:5173/
+      SESSION_COOKIE_SECURE: "false"
+      KONG_INTERNAL_URL: http://kong:8000
+      API_AUDIENCE: service-one-api
+    depends_on:
+      - keycloak
+
+  service-one-web:
+    build:
+      context: ./service-one/frontend
+    ports:
+      - "127.0.0.1:5173:80"
+    depends_on:
+      - service-one-api
+
+  service-two-api:
+    container_name: keycloak-bff-sso-lab-service-two-bff
+    build:
+      context: ./service-two/backend
+    environment:
+      KEYCLOAK_ISSUER_URI: http://localhost:8080/realms/demo
+      KEYCLOAK_AUTHORIZATION_URI: http://localhost:8080/realms/demo/protocol/openid-connect/auth
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/demo/protocol/openid-connect/certs
+      KEYCLOAK_TOKEN_URI: http://keycloak:8080/realms/demo/protocol/openid-connect/token
+      KEYCLOAK_USER_INFO_URI: http://keycloak:8080/realms/demo/protocol/openid-connect/userinfo
+      KEYCLOAK_CLIENT_ID: demo-service-two
+      KEYCLOAK_CLIENT_SECRET: demo-service-two-secret
+      KEYCLOAK_REDIRECT_URI: http://localhost:5174/login/oauth2/code/keycloak
+      BFF_SESSION_COOKIE_NAME: SERVICE_TWO_SESSION
+      FRONTEND_URL: http://localhost:5174/
+      SESSION_COOKIE_SECURE: "false"
+      KONG_INTERNAL_URL: http://kong:8000
+      API_AUDIENCE: service-two-api
+    depends_on:
+      - keycloak
+
+  service-two-web:
+    build:
+      context: ./service-two/frontend
+    ports:
+      - "127.0.0.1:5174:80"
+    depends_on:
+      - service-two-api

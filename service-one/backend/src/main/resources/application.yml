@@ -1,0 +1,41 @@
+server:
+  port: 8080
+  servlet:
+    session:
+      timeout: ${BFF_SESSION_TIMEOUT:30m}
+      cookie:
+        name: ${BFF_SESSION_COOKIE_NAME:__Host-Http-service-one-session}
+        path: /
+        http-only: true
+        secure: ${SESSION_COOKIE_SECURE:true}
+        same-site: lax
+
+app:
+  kong:
+    url: ${KONG_INTERNAL_URL:http://kong:8000}
+  frontend-url: ${FRONTEND_URL:http://localhost:5173/}
+  oidc:
+    issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/demo}
+    authorization-uri: ${KEYCLOAK_AUTHORIZATION_URI:http://localhost:8080/realms/demo/protocol/openid-connect/auth}
+    token-uri: ${KEYCLOAK_TOKEN_URI:http://keycloak:8080/realms/demo/protocol/openid-connect/token}
+    jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/demo/protocol/openid-connect/certs}
+    user-info-uri: ${KEYCLOAK_USER_INFO_URI:http://keycloak:8080/realms/demo/protocol/openid-connect/userinfo}
+    client-id: ${KEYCLOAK_CLIENT_ID:demo-service-one}
+    client-secret: ${KEYCLOAK_CLIENT_SECRET}
+    redirect-uri: ${KEYCLOAK_REDIRECT_URI:http://localhost:5173/login/oauth2/code/keycloak}
+  api:
+    audience: ${API_AUDIENCE:service-one-api}
+
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/demo}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8080/realms/demo/protocol/openid-connect/certs}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
